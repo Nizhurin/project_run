@@ -1,4 +1,6 @@
-from rest_framework import viewsets
+from django.shortcuts import get_object_or_404
+from rest_framework import viewsets, status
+from rest_framework.views import APIView
 from rest_framework.filters import SearchFilter
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -36,3 +38,21 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
                 is_stuff = True
             qs = qs.filter(is_staff=is_stuff)
         return qs
+
+class RunStartAPIView(APIView):
+    def post(self, request, run_id):
+        run = get_object_or_404(Run, id=run_id)
+        if run.status == 'init':
+            run.status = 'in_progress'
+            run.save()
+            return Response(status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+class RunStopAPIView(APIView):
+    def post(self, request, run_id):
+        run = get_object_or_404(Run, id=run_id)
+        if run.status == 'in_progress':
+            run.status = 'finished'
+            run.save()
+            return Response(status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_400_BAD_REQUEST)
