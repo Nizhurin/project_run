@@ -1,10 +1,13 @@
-from django.shortcuts import get_object_or_404
-from rest_framework import viewsets, status
-from rest_framework.views import APIView
-from rest_framework.filters import SearchFilter
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
 from django.conf import settings
+from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import OrderingFilter
+from rest_framework.pagination import PageNumberPagination
+from rest_framework import viewsets, status
+from rest_framework.decorators import api_view
+from rest_framework.filters import SearchFilter
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from app_run.models import Run, User
 from app_run.serializers import RunSerializer, UserSerializer
@@ -19,15 +22,28 @@ def company_details(request):
     }
     return Response(details)
 
+class RunPagination(PageNumberPagination):
+    page_size_query_param = 'size'  # Разрешаем изменять количество объектов через query параметр size в url
+
+class UserPagination(PageNumberPagination):
+    page_size_query_param = 'size'  # Разрешаем изменять количество объектов через query параметр size в url
+
 class RunViewSet(viewsets.ModelViewSet):
     queryset = Run.objects.select_related('athlete').all()
     serializer_class = RunSerializer
+    filter_backends = [DjangoFilterBackend, OrderingFilter] # Указываем какй класс будет использоваться для фильтра
+    filterset_fields = ['status', 'athlete'] # Поля, по которым будет происходить фильтрация
+    ordering_fields = ['created_at']  # Поля по которым будет возможна сортировка
+    pagination_class = RunPagination  # Указываем пагинацию
+
 
 class UserViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.all().exclude(is_superuser=True)
     serializer_class = UserSerializer
-    filter_backends = [SearchFilter] # Подключаем SearchFilter здесь
+    filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ['first_name', 'last_name'] # Указываем поля по которым будет вестись поиск
+    ordering_fields = ['date_joined']  # Поля по которым будет возможна сортировка
+    pagination_class = UserPagination  # Указываем пагинацию
 
     def get_queryset(self):
         qs = self.queryset  # Используем базовый queryset определенный выше, на уровне класса
