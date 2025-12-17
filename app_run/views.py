@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import OrderingFilter
@@ -53,6 +54,10 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
             if user_type == 'coach':
                 is_stuff = True
             qs = qs.filter(is_staff=is_stuff)
+        #  подсчет finished-run для каждого пользователя
+        qs = qs.annotate(
+            runs_finished=Count('run', filter=Q(run__status='finished'))
+        )
         return qs
 
 class RunStartAPIView(APIView):
