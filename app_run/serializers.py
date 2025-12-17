@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.db.models import Count, Q
 from rest_framework import serializers
 from .models import Run
 
@@ -17,6 +18,7 @@ class RunSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     type = serializers.SerializerMethodField()  # Задаем вычисляемое поле type
+    runs_finished = serializers.SerializerMethodField()  # Задаем вычисляемое поле runs_finished
 
     class Meta:
         model = User
@@ -24,3 +26,6 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_type(self, obj):
         return 'coach' if obj.is_staff else 'athlete'
+
+    def get_runs_finished(self, obj):
+        return User.objects.annotate(finished_runs_count=Count('run', filter=Q(run__status='finished')))
