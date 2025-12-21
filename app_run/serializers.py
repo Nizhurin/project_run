@@ -27,9 +27,11 @@ class UserSerializer(serializers.ModelSerializer):
         return 'coach' if obj.is_staff else 'athlete'
 
 class AthleteInfoSerializer(serializers.ModelSerializer):
+    user_id = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = AthleteInfo
-        fields = ("goals", "weight")
+        fields = ("user_id", "goals", "weight")
 
     def validate_weight(self, value):
         if value <= 0 or value >= 900:
