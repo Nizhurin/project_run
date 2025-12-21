@@ -81,14 +81,14 @@ class RunStopAPIView(APIView):
 class AthleteAPIView(APIView):
     def get(self, request, user_id):
         user = get_object_or_404(User, id=user_id)
-        athlete_info, _ = AthleteInfo.objects.get_or_create(user=user)
+        athlete_info, _ = AthleteInfo.objects.get_or_create(user_id=user)
 
         serializer = AthleteInfoSerializer(athlete_info)
         return Response(serializer.data)
 
     def put(self, request, user_id):
         user = get_object_or_404(User, id=user_id)
-        athlete_info, _ = AthleteInfo.objects.get_or_create(user=user)
+        athlete_info, _ = AthleteInfo.objects.get_or_create(user_id=user)
 
         serializer = AthleteInfoSerializer(
             athlete_info,

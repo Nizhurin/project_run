@@ -18,7 +18,7 @@ class Run(models.Model):
     )
 
 class AthleteInfo(models.Model):
-    user = models.OneToOneField(
+    user_id = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
         related_name="athlete_info",
@@ -27,4 +27,4 @@ class AthleteInfo(models.Model):
     weight = models.DecimalField(max_digits=3, decimal_places=0, default=70)
 
     def __str__(self):
-        return f"AthleteInfo({self.user})"
+        return f"AthleteInfo({self.user_id})"
