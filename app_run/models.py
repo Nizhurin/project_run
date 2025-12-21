@@ -24,7 +24,7 @@ class AthleteInfo(models.Model):
         related_name="athlete_info",
     )
     goals = models.TextField()
-    weight = models.DecimalField(max_digits=3, decimal_places=0, default=70)
+    weight = models.IntegerField(default=70)
 
     def __str__(self):
         return f"AthleteInfo({self.user})"
