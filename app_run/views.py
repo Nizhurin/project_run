@@ -10,8 +10,8 @@ from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from app_run.models import Run, User
-from app_run.serializers import RunSerializer, UserSerializer
+from app_run.models import Run, User, AthleteInfo
+from app_run.serializers import RunSerializer, UserSerializer, AthleteInfoSerializer
 
 
 @api_view(['GET'])
@@ -77,3 +77,25 @@ class RunStopAPIView(APIView):
             run.save()
             return Response(status=status.HTTP_200_OK)
         return Response(status=status.HTTP_400_BAD_REQUEST)
+
+class AthleteAPIView(APIView):
+    def get(self, request, user_id):
+        user = get_object_or_404(User, id=user_id)
+        athlete_info, _ = AthleteInfo.objects.get_or_create(user=user)
+
+        serializer = AthleteInfoSerializer(athlete_info)
+        return Response(serializer.data)
+
+    def put(self, request, user_id):
+        user = get_object_or_404(User, id=user_id)
+        athlete_info, _ = AthleteInfo.objects.get_or_create(user=user)
+
+        serializer = AthleteInfoSerializer(
+            athlete_info,
+            data=request.data,
+            partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
