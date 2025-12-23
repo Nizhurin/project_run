@@ -41,7 +41,7 @@ class AthleteInfoSerializer(serializers.ModelSerializer):
         return value
 
 class ChallengeSerializer(serializers.ModelSerializer):
-    athlete = serializers.IntegerField(read_only=True)
+    athlete = serializers.IntegerField(source="athlete_id", read_only=True)
 
     class Meta:
         model = Challenge
