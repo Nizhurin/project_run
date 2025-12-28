@@ -125,7 +125,7 @@ class PositionViewSet(ModelViewSet):
     serializer_class = PositionSerializer
 
     def get_queryset(self):
-        qs = self.get_queryset()
+        qs = super().get_queryset()
         run_id = self.request.query_params.get("run")
         if run_id:
             qs = qs.filter(run_id=run_id)
