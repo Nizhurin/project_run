@@ -9,9 +9,11 @@ from rest_framework.decorators import api_view
 from rest_framework.filters import SearchFilter
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.viewsets import ModelViewSet
 
-from app_run.models import Run, User, AthleteInfo, Challenge
-from app_run.serializers import RunSerializer, UserSerializer, AthleteInfoSerializer, ChallengeSerializer
+from app_run.models import Run, User, AthleteInfo, Challenge, Position
+from app_run.serializers import RunSerializer, UserSerializer, AthleteInfoSerializer, ChallengeSerializer, \
+    PositionSerializer
 
 
 @api_view(['GET'])
@@ -117,3 +119,14 @@ class ChallengeViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ChallengeSerializer
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["athlete"]
+
+class PositionViewSet(ModelViewSet):
+    queryset = Position.objects.all()
+    serializer_class = PositionSerializer
+
+    def get_queryset(self):
+        qs = self.get_queryset()
+        run_id = self.request.query_params.get("run")
+        if run_id:
+            qs = qs.filter(run_id=run_id)
+        return qs
