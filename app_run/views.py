@@ -15,6 +15,27 @@ from app_run.models import Run, User, AthleteInfo, Challenge, Position
 from app_run.serializers import RunSerializer, UserSerializer, AthleteInfoSerializer, ChallengeSerializer, \
     PositionSerializer
 
+from geopy.distance import geodesic
+
+
+def calculate_run_distance(run: Run) -> float:
+    points = Position.objects.filter(run=run)
+
+    if points.count() < 2:
+        return 0.0
+
+    total_distance = 0.0
+    prev_point = points[0]
+
+    for point in points[1:]:
+        total_distance += geodesic(
+            (float(prev_point.latitude), float(prev_point.longitude)),
+            (float(point.latitude), float(point.longitude))
+        ).km
+        prev_point = point
+
+    return round(total_distance, 3)
+
 
 @api_view(['GET'])
 def company_details(request):
@@ -75,6 +96,7 @@ class RunStopAPIView(APIView):
     def post(self, request, run_id):
         run = get_object_or_404(Run, id=run_id)
         if run.status == 'in_progress':
+            run.distance = calculate_run_distance(run=run)
             run.status = 'finished'
             run.save()
             # считаем количетво завершенных забегов атлета

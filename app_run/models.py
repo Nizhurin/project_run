@@ -16,6 +16,8 @@ class Run(models.Model):
         choices=RUN_STATUS_CHOICES,
         default="init",
     )
+    distance = models.FloatField(default=0)
+
 
 class AthleteInfo(models.Model):
     user = models.OneToOneField(
