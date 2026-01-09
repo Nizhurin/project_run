@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db.models import Count, Q
+from django.db.models.aggregates import Sum
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import OrderingFilter
@@ -99,18 +100,25 @@ class RunStopAPIView(APIView):
             run.distance = calculate_run_distance(run=run)
             run.status = 'finished'
             run.save()
-            # считаем количетво завершенных забегов атлета
-            finished_count = Run.objects.filter(
+            # вычисляем статистические данные
+            finished_run = Run.objects.filter(
                 athlete=run.athlete,
                 status='finished'
-            ).count()
+            ).aggregate(total_finished=Count('id'), total_finish_distance=Sum('distance'))
 
-            if finished_count == 10:
-                # создаем запись в тблице челенджей без дубликатов
+            if finished_run['total_finished'] == 10:
+                # создаем запись в таблице челенджей без дубликатов
                 Challenge.objects.get_or_create(
                     athlete=run.athlete,
                     full_name="Сделай 10 Забегов!"
                 )
+
+            if finished_run['total_finish_distance'] >= 50:
+                Challenge.objects.get_or_create(
+                    athlete=run.athlete,
+                    full_name="Пробеги 50 километров!"
+                )
+
             return Response(status=status.HTTP_200_OK)
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
