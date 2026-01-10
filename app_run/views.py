@@ -12,11 +12,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 
-from app_run.models import Run, User, AthleteInfo, Challenge, Position
+from app_run.models import Run, User, AthleteInfo, Challenge, Position, CollectibleItem
 from app_run.serializers import RunSerializer, UserSerializer, AthleteInfoSerializer, ChallengeSerializer, \
-    PositionSerializer
+    PositionSerializer, CollectibleItemSerializer
 
 from geopy.distance import geodesic
+from openpyxl import load_workbook
 
 
 def calculate_run_distance(run: Run) -> float:
@@ -160,3 +161,63 @@ class PositionViewSet(ModelViewSet):
         if run_id:
             qs = qs.filter(run_id=run_id)
         return qs
+
+class CollectibleItemAPIView(APIView):
+    def get(self, request):
+        queryset = CollectibleItem.objects.all()
+        serializer = CollectibleItemSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+
+@api_view(['POST'])
+def upload_collectible_item(request):
+    uploaded_file = request.FILES.get("file")
+    if not uploaded_file:
+        return Response(
+            {"detail": "Файл не передан (ожидается key: file)"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    # простая проверка расширения (не идеальная, но полезная)
+    if not uploaded_file.name.lower().endswith(".xlsx"):
+        return Response(
+            {"detail": "Нужен файл формата .xlsx"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    wb = load_workbook(uploaded_file)
+    ws = wb.active
+
+    # Берём заголовки из первой строки
+    header_row = next(ws.iter_rows(min_row=1, max_row=1, values_only=True))
+    headers = [h.strip() if isinstance(h, str) else h for h in header_row]
+
+    invalid_rows = []
+    created_count = 0
+
+    # Идем со 2-й строки, значения берем как python-типы (values_only=True)
+    for row in ws.iter_rows(min_row=2, values_only=True):
+        # Пропускаем полностью пустые строки
+        if row is None or all(v is None for v in row):
+            continue
+
+        # row -> dict для сериалайзера
+        data = dict(zip(headers, row))
+
+        serializer = CollectibleItemSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            created_count += 1
+        else:
+            # По требованию: вернуть "неправильные" строки как список списков
+            invalid_rows.append(list(row))
+
+    wb.close()
+
+    return Response(
+        {
+            "created": created_count,
+            "invalid_rows": invalid_rows,  # формат как в задании
+        },
+        status=status.HTTP_200_OK,
+    )

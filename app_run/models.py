@@ -42,3 +42,11 @@ class Position(models.Model):
 
     def __str__(self):
         return f"Position({self.run}, {self.latitude}, {self.longitude})"
+
+class CollectibleItem(models.Model):
+    name = models.TextField()
+    uid  = models.TextField()
+    latitude = models.FloatField()
+    longitude = models.FloatField()
+    picture = models.URLField()
+    value = models.IntegerField()

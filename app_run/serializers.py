@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from .models import Run, AthleteInfo, Challenge, Position
+from .models import Run, AthleteInfo, Challenge, Position, CollectibleItem
 
 
 class AthleteDataSerializer(serializers.ModelSerializer):
@@ -73,3 +73,8 @@ class PositionSerializer(serializers.ModelSerializer):
                  "Run must be in status 'in_progress'."
             )
         return run
+
+class CollectibleItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CollectibleItem
+        fields = '__all__'
