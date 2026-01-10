@@ -171,43 +171,81 @@ class CollectibleItemAPIView(APIView):
 
 @api_view(['POST'])
 def upload_collectible_item(request):
+    HEADER_MAP = {
+        "name": "name",
+        "uid": "uid",
+        "value": "value",
+        "latitude": "latitude",
+        "longitude": "longitude",
+        "url": "picture",
+    }
+
+    def clean_value(key: str, value):
+        if value is None:
+            return None
+
+        # чистимо строки
+        if isinstance(value, str):
+            v = value.strip()
+
+            # типова проблема з Excel/CSV-експортом: зайвий ; або лапки
+            v = v.strip('";\' ')
+            if v.endswith(";"):
+                v = v[:-1].strip()
+
+            value = v
+
+        # приводимо типи
+        if key in ("latitude", "longitude"):
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return value  # хай впаде валідація
+
+        if key == "value":
+            try:
+                return int(value)
+            except (TypeError, ValueError):
+                return value
+
+        return value
+
     uploaded_file = request.FILES.get("file")
     if not uploaded_file:
-        return Response(
-            {"detail": "Файл не передан (ожидается key: file)"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        return Response({"detail": "Файл не передан (key: file)"}, status=status.HTTP_400_BAD_REQUEST)
 
-    # простая проверка расширения (не идеальная, но полезная)
-    if not uploaded_file.name.lower().endswith(".xlsx"):
-        return Response(
-            {"detail": "Нужен файл формата .xlsx"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
-    wb = load_workbook(uploaded_file)
+    wb = load_workbook(uploaded_file, data_only=True)
     ws = wb.active
 
-    # Берём заголовки из первой строки
-    header_row = next(ws.iter_rows(min_row=1, max_row=1, values_only=True))
-    headers = [h.strip() if isinstance(h, str) else h for h in header_row]
+    # читаємо заголовки
+    raw_headers = next(ws.iter_rows(min_row=1, max_row=1, values_only=True))
+    raw_headers = [h if h is not None else "" for h in raw_headers]
+
+    # будуємо список полів, у які будемо мапити колонки
+    mapped_fields = []
+    for h in raw_headers:
+        h_norm = str(h).strip().lower()
+        mapped_fields.append(HEADER_MAP.get(h_norm))  # може бути None, якщо колонка зайва/невідома
 
     invalid_rows = []
 
-    # Идем со 2-й строки, значения берем как python-типы (values_only=True)
     for row in ws.iter_rows(min_row=2, values_only=True):
-        # Пропускаем полностью пустые строки
+        # пропускаємо повністю пусті рядки
         if row is None or all(v is None for v in row):
             continue
 
-        # row -> dict для сериалайзера
-        data = dict(zip(headers, row))
+        # формуємо data для serializer лише по відомих колонках
+        data = {}
+        for field_name, cell_value in zip(mapped_fields, row):
+            if not field_name:
+                continue
+            data[field_name] = clean_value(field_name, cell_value)
 
         serializer = CollectibleItemSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
         else:
-            # По требованию: вернуть "неправильные" строки как список списков
+            # по ТЗ: повертаємо "сирий" рядок (list of lists)
             invalid_rows.append(list(row))
 
     wb.close()
