@@ -193,7 +193,6 @@ def upload_collectible_item(request):
     headers = [h.strip() if isinstance(h, str) else h for h in header_row]
 
     invalid_rows = []
-    created_count = 0
 
     # Идем со 2-й строки, значения берем как python-типы (values_only=True)
     for row in ws.iter_rows(min_row=2, values_only=True):
@@ -207,17 +206,10 @@ def upload_collectible_item(request):
         serializer = CollectibleItemSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
-            created_count += 1
         else:
             # По требованию: вернуть "неправильные" строки как список списков
             invalid_rows.append(list(row))
 
     wb.close()
 
-    return Response(
-        {
-            "created": created_count,
-            "invalid_rows": invalid_rows,  # формат как в задании
-        },
-        status=status.HTTP_200_OK,
-    )
+    return Response(invalid_rows)
